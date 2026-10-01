@@ -37,7 +37,7 @@ description: >-
    the same problem is a loop, and loops are manifests.
 4. **Runs are watched, not hidden — and the screen comes up FIRST.** The
    moment this skill loads for real work, before you write a single spec,
-   put Ringside on the human's screen: `./ringer.py hud` (idempotent — if
+   put Ringside on the human's screen: `$RINGER_CHECKOUT/ringer hud` (idempotent — if
    one is already up it says so and opens the page; runs also auto-start
    it). Ringside is the PAGE at http://127.0.0.1:8700 — NEVER launch the
    Ringside.app application (`open -a Ringside`); it is a parked prototype
@@ -49,6 +49,27 @@ description: >-
    `--no-dashboard` except in automated tests or when the user explicitly
    asks.
 
+## Where Ringer lives
+
+Ringer is a checkout of its own, not part of the repository you are working
+in. `RINGER_CHECKOUT` holds its absolute path; it is set in the `env` block of
+`~/.claude/settings.json`. Never use `RINGER_HOME` for this: Ringer reads
+`RINGER_HOME` as its state directory (`~/.ringer` by default), so pointing it
+at the checkout puts run state and hook state inside the repository. In the
+EPMC-TDM workspace the checkout sits next to the other repositories, as
+`<workspace>/ringer`. Every `$RINGER_CHECKOUT/...` path in this skill is
+inside it.
+
+Call Ringer through its launcher, `$RINGER_CHECKOUT/ringer`, from the
+directory you are working in (`$RINGER_CHECKOUT/ringer lint manifest.json`).
+The launcher runs `ringer.py` with the Python 3.12 the checkout pins in
+`.python-version`; pyenv applies that pin only inside the checkout, so calling
+`ringer.py` directly from a repository gets the global Python and exits.
+Staying in your own directory keeps relative manifest paths and a repository's
+`.fleet-agent` identity working. If `RINGER_CHECKOUT` is empty, or
+`$RINGER_CHECKOUT/ringer` does not exist, stop and work through "Setting
+Ringer up" at the end of this skill before anything else.
+
 Ringer runs manifest tasks in parallel across cheap CLI workers (OpenCode
 over DIAL, others via config) and verifies every task by **executing a
 check command** — exit 0 is the only PASS. Failed tasks are retried once
@@ -57,14 +78,14 @@ the orchestrating model — pay tokens only for specs, orchestration, and
 review.
 
 ```bash
-./ringer.py lint manifest.json            # always lint before running
-./ringer.py run manifest.json --identity <who-you-are>
-./ringer.py demo                          # 3-worker smoke test
-./ringer.py run manifest.json --dry-run   # print the plan, spawn nothing
+$RINGER_CHECKOUT/ringer lint manifest.json            # always lint before running
+$RINGER_CHECKOUT/ringer run manifest.json --identity <who-you-are>
+$RINGER_CHECKOUT/ringer run $RINGER_CHECKOUT/lane-test-dial.json --identity <who-you-are>   # DIAL smoke test
+$RINGER_CHECKOUT/ringer run manifest.json --dry-run   # print the plan, spawn nothing
 ```
 
 Runs land in `~/.ringer/runs/`. Raw worker logs land in `<workdir>/logs/`.
-Full reference: `README.md`. Ready-made manifest skeletons: `templates/`.
+Full reference: `$RINGER_CHECKOUT/README.md`. Ready-made manifest skeletons: `$RINGER_CHECKOUT/templates/`.
 Lint catches unverifiable checks, silent checks, worktree deliverable/commit
 loss, serial fan-out, write collisions, and underspecified specs; `run`
 prints the same findings as non-blocking warnings.
@@ -78,7 +99,7 @@ prose. A manifest for that is ceremony — but answering it in your own context
 means pulling whole files into a conversation that is already expensive.
 
 ```bash
-./ringer.py ask "<the human's request>" --source /absolute/path/to/source
+$RINGER_CHECKOUT/ringer ask "<the human's request>" --source /absolute/path/to/source
 ```
 
 `ask` selects the passages that match the request, caps the packet, spawns one
@@ -187,30 +208,30 @@ the check's failure output.
 
 ## Pattern playbook
 
-Reach for a named pattern before inventing one. Skeletons in `templates/`:
+Reach for a named pattern before inventing one. Skeletons in `$RINGER_CHECKOUT/templates/`:
 
 | Kit | Use when |
 |---|---|
-| [review-swarm](../../../templates/review-swarm/) | You need broad read-only review coverage before deciding what to fix. |
-| [fix-swarm](../../../templates/fix-swarm/) | You have confirmed independent fixes that can be split across isolated worktrees. |
-| [focus-group](../../../templates/focus-group/) | You need isolated persona feedback on a product, pitch, prompt, or workflow. |
-| [bakeoff](../../../templates/bakeoff/) | You need evidence for choosing a model, prompt, or configuration across shared scenarios. |
-| [research-with-proof](../../../templates/research-with-proof/) | You need research backed by a proof task whose check executes the claim. |
-| [launch-kit](../../../templates/launch-kit/) | You need a go-to-market package built across research, persona review, and final assembly rounds. |
-| [asset-swarm](../../../templates/asset-swarm/) | You need media assets produced in parallel with executable checks for renders, batches, diagrams, or captures. |
-| [adversarial-review](../../../templates/adversarial-review/) | You want several models to review the same artifact before the orchestrator synthesizes findings. |
-| [repo-feature](../../../templates/repo-feature/) | You know what to build and need sandboxed workers to edit a real repo with build and git checks. |
-| [migration-swarm](../../../templates/migration-swarm/) | You have mechanical codebase transforms that can be partitioned across worktrees. |
-| [doc-swarm](../../../templates/doc-swarm/) | You need module docs with executed examples and checks against invented APIs. |
-| [test-hardening](../../../templates/test-hardening/) | You need stronger tests by module while keeping production source edits off-limits. |
-| [competitive-teardown](../../../templates/competitive-teardown/) | You need competitor research with citation allowlists and a synthesis phase. |
-| [data-pipeline](../../../templates/data-pipeline/) | You need fetch, transform, and validate stages with executed validators and honesty rules. |
-| [probe](../../../templates/probe/) | You need a one-task manifest for a smoke, probe, or post-mortem. |
+| `review-swarm` (`$RINGER_CHECKOUT/templates/review-swarm/`) | You need broad read-only review coverage before deciding what to fix. |
+| `fix-swarm` (`$RINGER_CHECKOUT/templates/fix-swarm/`) | You have confirmed independent fixes that can be split across isolated worktrees. |
+| `focus-group` (`$RINGER_CHECKOUT/templates/focus-group/`) | You need isolated persona feedback on a product, pitch, prompt, or workflow. |
+| `bakeoff` (`$RINGER_CHECKOUT/templates/bakeoff/`) | You need evidence for choosing a model, prompt, or configuration across shared scenarios. |
+| `research-with-proof` (`$RINGER_CHECKOUT/templates/research-with-proof/`) | You need research backed by a proof task whose check executes the claim. |
+| `launch-kit` (`$RINGER_CHECKOUT/templates/launch-kit/`) | You need a go-to-market package built across research, persona review, and final assembly rounds. |
+| `asset-swarm` (`$RINGER_CHECKOUT/templates/asset-swarm/`) | You need media assets produced in parallel with executable checks for renders, batches, diagrams, or captures. |
+| `adversarial-review` (`$RINGER_CHECKOUT/templates/adversarial-review/`) | You want several models to review the same artifact before the orchestrator synthesizes findings. |
+| `repo-feature` (`$RINGER_CHECKOUT/templates/repo-feature/`) | You know what to build and need sandboxed workers to edit a real repo with build and git checks. |
+| `migration-swarm` (`$RINGER_CHECKOUT/templates/migration-swarm/`) | You have mechanical codebase transforms that can be partitioned across worktrees. |
+| `doc-swarm` (`$RINGER_CHECKOUT/templates/doc-swarm/`) | You need module docs with executed examples and checks against invented APIs. |
+| `test-hardening` (`$RINGER_CHECKOUT/templates/test-hardening/`) | You need stronger tests by module while keeping production source edits off-limits. |
+| `competitive-teardown` (`$RINGER_CHECKOUT/templates/competitive-teardown/`) | You need competitor research with citation allowlists and a synthesis phase. |
+| `data-pipeline` (`$RINGER_CHECKOUT/templates/data-pipeline/`) | You need fetch, transform, and validate stages with executed validators and honesty rules. |
+| `probe` (`$RINGER_CHECKOUT/templates/probe/`) | You need a one-task manifest for a smoke, probe, or post-mortem. |
 
 Pattern-selection judgment:
 
 - **Browse the catalog first.** Before writing any manifest, browse
-  `templates/README.md`: choose a kit, mix pieces from several, or write
+  `$RINGER_CHECKOUT/templates/README.md`: choose a kit, mix pieces from several, or write
   your own having seen the prior art.
 - **Review before fix.** Run a read-only review swarm, read the reports
   yourself, then compile the confirmed findings into a fix-swarm manifest.
@@ -231,8 +252,8 @@ Pattern-selection judgment:
 **The engine choice belongs to the human — but the recommendation comes
 from THEIR evidence.** Before the FIRST run of a job: read what's wired up
 (`[engines.<name>]` blocks in `~/.config/ringer/config.toml`), run
-`./ringer.py models --task-type <this job's type>` for the local scoreboard,
-and glance at `./ringer.py catalog --changes` for anything newly free or
+`$RINGER_CHECKOUT/ringer models --task-type <this job's type>` for the local scoreboard,
+and glance at `$RINGER_CHECKOUT/ringer catalog --changes` for anything newly free or
 newly cheap. Then ask the user which model should do the typing — top 2–3
 options with the NUMBERS in the pitch and a recommendation, e.g.: *"GLM is
 6/6 first-try on persona work here at ~2¢/task — recommended. Sonnet over
@@ -247,7 +268,7 @@ recommend from a different user's numbers.
 pick means never learning a new one. In any run of 3+ tasks that has a
 low-stakes lane (docs sweeps, mechanical edits, persona reviews — strong
 executed check, retry to absorb failure), assign roughly ONE task to an
-exploration candidate from `./ringer.py models --explore --task-type <type>`
+exploration candidate from `$RINGER_CHECKOUT/ringer models --explore --task-type <type>`
 (untested + cheap or free, text-capable, decent context). Free promos from
 `catalog --changes` jump the queue — a temporarily-free model is a zero-cost
 experiment. Never explore on time-critical work, never with more than a
@@ -284,9 +305,14 @@ per task via the manifest `engine` field. Defaults are deliberate:
   codex, so always pass `--engine dial`. To un-park, uncomment the block and
   delete this bullet.
 - **dial** (the standing pick): OpenCode against the DIAL gateway, via the
-  `engines/opencode-dial.sh` wrapper that gives each worker its own XDG tree.
-  `model_default` is `dial/dial-sonnet-45`. Source `~/.ringer/dial.env` before
-  the run or every worker 401s.
+  `$RINGER_CHECKOUT/engines/opencode-dial.sh` wrapper that gives each worker
+  its own XDG tree. `model_default` is `dial-sonnet55/sonnet-55` (Claude
+  Sonnet 5.5). The newest Anthropic lanes are `dial-opus55/opus-55` (Opus
+  5.5: slower, keep it for review and judgment) and `dial-haiku/haiku-45`
+  (Haiku 4.5); each OpenCode provider pins one DIAL deployment, and a new one
+  needs a provider block in `~/.config/opencode/opencode.json` plus an entry
+  in `$RINGER_CHECKOUT/registry/model-identity.toml`. Source
+  `~/.ringer/dial.env` before the run or every worker 401s.
 - **opencode**: the universal lane — any OpenRouter model via the `model`
   field (engine `model_default` is GLM-5.2, the cheap-intelligence pick).
   Validate a model new to you with a trivial one-task manifest before
@@ -296,15 +322,15 @@ per task via the manifest `engine` field. Defaults are deliberate:
 - Match `timeout_s` to the task: conversational harness tasks and
   build-and-test checks need far more than file edits.
 - **Check the evidence before assigning models to tasks.** Run
-  `./ringer.py models` (optionally `--task-type <type>`) — the local
+  `$RINGER_CHECKOUT/ringer models` (optionally `--task-type <type>`) — the local
   scoreboard aggregating every executed-check outcome per (model,
   task_type): first_try_pass_rate is the routing signal; pass_rate includes
-  retry rescues. Then read `docs/MODEL-NOTES.md` (in the ringer repo) for
+  retry rescues. Then read `$RINGER_CHECKOUT/docs/MODEL-NOTES.md` for
   the judgment the numbers can't carry. Routing is grounded in performance,
   not vibes (Jon directive 2026-07-06).
 - **"Show me the scoreboard" is one command.** When the human asks to see
   the model scoreboard, rankings, model costs, or "which models work best,"
-  run `./ringer.py models --open` — it renders the full scoreboard (tiers,
+  run `$RINGER_CHECKOUT/ringer models --open` — it renders the full scoreboard (tiers,
   first-try rates, est. $/task, usage, MODEL-NOTES excerpts, free-promo
   watchlist) as a zero-LLM HTML page in the artifact library and opens it
   in their browser. Costs no tokens; never hand-summarize the numbers when
@@ -349,12 +375,12 @@ someone's untracked scratch files.
    catches most laziness; you catch the rest.
 4. Failures with useless error messages mean your CHECK needs work, not
    (only) the worker.
-5. **Update `docs/MODEL-NOTES.md`** (in the ringer repo) when a run taught
+5. **Update `$RINGER_CHECKOUT/docs/MODEL-NOTES.md`** when a run taught
    you something about a model: one dated line under the model — task type,
    what happened (attempts, tokens, failure mode), what you'd do
    differently. Only what the executed checks and raw logs support. The raw
    numbers took care of themselves — every attempt already landed in the
-   local model log (`./ringer.py models` to see the updated scoreboard).
+   local model log (`$RINGER_CHECKOUT/ringer models` to see the updated scoreboard).
 
 ## Spend your own context deliberately
 
@@ -381,6 +407,59 @@ not free either, and nothing in the tool constrains them:
 When you claim a saving, count the whole job — every call, including your own
 planning and review. Moving tokens from your context into a worker's is only a
 saving if the total came down.
+
+## Setting Ringer up (once per machine, or after moving the checkout)
+
+Work through this when `$RINGER_CHECKOUT/ringer` is missing or a DIAL worker
+cannot start. Each step ends in a check; do not move on until it passes.
+
+1. **The checkout.** Ringer here is the team's fork with the DIAL engine,
+   `https://github.com/tdspora/ringer` (branch `my-fixes`), cloned next to
+   the EPMC-TDM repositories as `<workspace>/ringer`. It needs Python 3.12 or
+   later; `.python-version` pins 3.12.12 (`pyenv install 3.12.12`), and the
+   `ringer` launcher finds that interpreter, or any `python3.12`+ on `PATH`.
+   Check: `<workspace>/ringer/ringer --help` lists the subcommands.
+2. **`RINGER_CHECKOUT`.** Add `"env": {"RINGER_CHECKOUT": "<absolute path of
+   the checkout>"}` to `~/.claude/settings.json`, then restart Claude Code.
+   Leave `RINGER_HOME` unset unless you mean to move Ringer's state out of
+   `~/.ringer`.
+   Check: `"$RINGER_CHECKOUT/ringer" --help` lists the subcommands.
+3. **Hooks.** `$RINGER_CHECKOUT/ringer install-agent` adds the two nudge hooks
+   (`ringer_nudge.py pre-bash` and `post-edit`) to `~/.claude/settings.json`
+   and copies this skill to `~/.claude/skills/ringer/`. It adds hooks only
+   when none exist, so after a move, edit the two `ringer_nudge.py` paths by
+   hand. If the `tdm-workbench` plugin already gives you this skill, delete
+   `~/.claude/skills/ringer/` afterwards so the skill exists once.
+   Check: `grep ringer_nudge ~/.claude/settings.json` shows two paths under
+   `$RINGER_CHECKOUT/hooks/`.
+4. **The DIAL engine.** `opencode` must be on `PATH` (`opencode --version`;
+   the team pins 1.18.26). `~/.config/opencode/opencode.json` holds one
+   provider block per DIAL deployment, with the key read as
+   `{env:DIAL_API_KEY}`. `~/.ringer/dial.env` holds `DIAL_API_KEY` (the
+   project-scoped key, mode 600). In `~/.config/ringer/config.toml`, `bin`
+   must be an absolute path, because Ringer expands neither `~` nor variables
+   there:
+
+   ```toml
+   [engines.dial]
+   bin = "<absolute path of the checkout>/engines/opencode-dial.sh"
+   # keep "claude" and "anthropic" out of this id: OpenCode then adds
+   # cache_control blocks, which DIAL rejects with a 400
+   model_default = "dial-sonnet55/sonnet-55"
+   args_template = ["run", "--dir", "{taskdir}", "-m", "{model}", "--auto",
+                    "--format", "json", "{engine_args}", "{spec}"]
+   sandbox_args = []
+   full_access_args = []
+   token_regex = '"tokens":\{"total":([0-9]+)'
+   ```
+
+   Check: `source ~/.ringer/dial.env && $RINGER_CHECKOUT/ringer run
+   $RINGER_CHECKOUT/lane-test-dial.json --identity <who-you-are>` passes.
+5. **Updates.** Run `$RINGER_CHECKOUT/update.sh` rather than
+   `$RINGER_CHECKOUT/ringer self-update`: the checkout carries tracked local
+   changes, and the built-in updater refuses to touch a dirty tree. On a
+   shared machine such as the factory host, pin Ringer with
+   `RINGER_NO_SELF_UPDATE=1` and update it only through a reviewed change.
 
 ## Baked-in invariants (preserve in any change to ringer.py)
 

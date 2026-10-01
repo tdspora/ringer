@@ -122,10 +122,12 @@ last_verified = 2026-07-10
 # DIAL deployment in its baseURL; that deployment id is the evidence below.
 # Deployment ids confirmed 2026-09-02 against
 # GET https://ai-proxy.lab.epam.com/openai/deployments (143 entitled).
+# Sonnet 5.5 and Opus 5.5 added 2026-10-01 from the same listing (166
+# entitled); Sonnet 5.5 became the engine default then.
 [engines.dial]
 harness = "OpenCode"
 access = "EPAM DIAL"
-default_model_key = "dial/dial-sonnet-45"
+default_model_key = "dial-sonnet55/sonnet-55"
 
 [engines.dial.models."dial/dial-sonnet-45"]
 display = "Claude Sonnet 4.5"
@@ -182,6 +184,20 @@ lab = "Anthropic"
 confidence = "verified"
 source = "DIAL deployment claude-sonnet-4-6@default pinned in the opencode provider baseURL; listed by GET /openai/deployments on 2026-09-04"
 last_verified = 2026-09-04
+
+[engines.dial.models."dial-sonnet55/sonnet-55"]
+display = "Claude Sonnet 5.5"
+lab = "Anthropic"
+confidence = "verified"
+source = "DIAL deployment claude-sonnet-5-5@default pinned in the opencode provider baseURL; listed by GET /openai/deployments on 2026-10-01"
+last_verified = 2026-10-01
+
+[engines.dial.models."dial-opus55/opus-55"]
+display = "Claude Opus 5.5"
+lab = "Anthropic"
+confidence = "verified"
+source = "DIAL deployment claude-opus-5-5@default pinned in the opencode provider baseURL; listed by GET /openai/deployments on 2026-10-01"
+last_verified = 2026-10-01
 
 [engines.dial.models."dial-sol/gpt-5.6-sol"]
 display = "GPT-5.6 Sol"

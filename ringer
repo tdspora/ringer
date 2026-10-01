@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Run ringer.py with the Python this checkout pins, from any directory.
+#
+# WHY THIS EXISTS
+# Ringer needs Python 3.12 or later. The checkout pins it in .python-version,
+# but pyenv reads that file only when the current directory is inside the
+# checkout. Calling ringer.py by its full path from a repository therefore
+# falls back to the global Python (3.11 on the EPMC-TDM machines), and
+# ringer.py exits with "ringer requires Python 3.12+".
+#
+# This launcher picks the interpreter itself and runs ringer.py with it. It
+# leaves the current directory alone, so relative manifest paths and a
+# repository's .fleet-agent identity still resolve, and it exports nothing, so
+# workers and checks still choose their Python from their own directory.
+set -euo pipefail
+
+here="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+py=""
+
+# 1. The version pinned in .python-version, if pyenv has it installed.
+if [ -f "$here/.python-version" ]; then
+  pinned="$(tr -d '[:space:]' < "$here/.python-version")"
+  candidate="${PYENV_ROOT:-$HOME/.pyenv}/versions/$pinned/bin/python3"
+  if [ -n "$pinned" ] && [ -x "$candidate" ]; then
+    py="$candidate"
+  fi
+fi
+
+# 2. Otherwise the first interpreter on PATH that is 3.12 or later.
+if [ -z "$py" ]; then
+  for name in python3.14 python3.13 python3.12 python3; do
+    if command -v "$name" >/dev/null 2>&1 \
+      && "$name" -c 'import sys; sys.exit(sys.version_info < (3, 12))' >/dev/null 2>&1; then
+      py="$(command -v "$name")"
+      break
+    fi
+  done
+fi
+
+if [ -z "$py" ]; then
+  echo "ringer: no Python 3.12 or later found. Install the version in $here/.python-version with pyenv, or put python3.12 on PATH." >&2
+  exit 1
+fi
+
+exec "$py" "$here/ringer.py" "$@"

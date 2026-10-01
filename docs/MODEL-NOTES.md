@@ -333,6 +333,14 @@ checks and raw logs support — no vibes, no worker self-reports.
 - **Ideas worth keeping from a rejected PR.** PR #82's pre-call gateway was dropped (needs your own API key, so it converts flat-rate OAuth plans into metered API billing; incompatible with Claude Code; and it saves tokens by stripping the tool list, which is the thing that makes the CLI worth using). One idea inside it is worth remembering if the problem ever comes back: an *explicitly blessed* answer cache — key a reviewed answer to the exact request plus the exact selected source packet, and replay it with zero upstream calls, never auto-accepting a model answer. It only fires on byte-identical repeats, which is why it didn't justify 2,000 lines here.
 - **Doc-stated support floors need a CI job or they are fiction.** README promised Python 3.11+ while CI only ever ran 3.12; a 3.12-only f-string reached review with a fully green suite. Either test the floor or move it.
 
+## Claude Sonnet 5.5 (dial engine, `dial-sonnet55/sonnet-55`) — engine default since 2026-10-01
+
+- 2026-10-01 (run `dial-latest-anthropic-lanes`, probe: the `greet.py` lane test, run beside Opus 5.5): 1/1 first-try, 15,029 tokens, 8.6s, output correct on inspection. One trivial task only, so this proves the lane works (deployment `claude-sonnet-5-5@default`, alias id kept free of "claude"), not how the model ranks. Made the `dial` engine default on the same day, replacing `dial/dial-sonnet-45`.
+
+## Claude Opus 5.5 (dial engine, `dial-opus55/opus-55`)
+
+- 2026-10-01 (run `dial-latest-anthropic-lanes`, same probe as Sonnet 5.5): 1/1 first-try, 15,275 tokens, but **70.6s against Sonnet 5.5's 8.6s on an identical task**, with near-identical token counts, so the time went to latency rather than to more work. Opus 5 took 1m00s and failed its one DIAL task on 2026-09-04. Give Opus lanes a generous `timeout_s`, and save them for review and judgment tasks where its depth pays for the wait.
+
 ## Claude Haiku 4.5 (dial engine, `dial-haiku/haiku-45`)
 
 - 2026-09-02 — **its 0% first-try is an infrastructure crash, not model quality. Do not route off that number.** In run `fabrica2-tests-worktrees` the attempt-1 FAIL logged `worker_returncode=1` one second after launch, before any model call: `Error: Unexpected error / database is locked` — three OpenCode processes started at once and raced on OpenCode's shared SQLite session database. It passed cleanly on retry (task `media`, 18 tests, 36,531 tokens). Read this model's record as 1/1 on quality, 0/1 on a race it did not cause.
