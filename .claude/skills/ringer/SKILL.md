@@ -414,10 +414,11 @@ Work through this when `$RINGER_CHECKOUT/ringer` is missing or a DIAL worker
 cannot start. Each step ends in a check; do not move on until it passes.
 
 1. **The checkout.** Ringer here is the team's fork with the DIAL engine,
-   `https://github.com/tdspora/ringer` (branch `my-fixes`), cloned next to
-   the EPMC-TDM repositories as `<workspace>/ringer`. It needs Python 3.12 or
-   later; `.python-version` pins 3.12.12 (`pyenv install 3.12.12`), and the
-   `ringer` launcher finds that interpreter, or any `python3.12`+ on `PATH`.
+   `https://github.com/tdspora/ringer` (branch `main`; `my-fixes` carries the
+   same commits), cloned next to the EPMC-TDM repositories as
+   `<workspace>/ringer`. It needs Python 3.12 or later; `.python-version`
+   pins 3.12.12 (`pyenv install 3.12.12`), and the `ringer` launcher finds
+   that interpreter, or any `python3.12`+ on `PATH`.
    Check: `<workspace>/ringer/ringer --help` lists the subcommands.
 2. **`RINGER_CHECKOUT`.** Add `"env": {"RINGER_CHECKOUT": "<absolute path of
    the checkout>"}` to `~/.claude/settings.json`, then restart Claude Code.
@@ -435,8 +436,28 @@ cannot start. Each step ends in a check; do not move on until it passes.
 4. **The DIAL engine.** `opencode` must be on `PATH` (`opencode --version`;
    the team pins 1.18.26). `~/.config/opencode/opencode.json` holds one
    provider block per DIAL deployment, with the key read as
-   `{env:DIAL_API_KEY}`. `~/.ringer/dial.env` holds `DIAL_API_KEY` (the
-   project-scoped key, mode 600). In `~/.config/ringer/config.toml`, `bin`
+   `{env:DIAL_API_KEY}`; the standing lane needs at least this block (the
+   deployment id after `deployments/` is what DIAL routes on):
+
+   ```json
+   {
+     "$schema": "https://opencode.ai/config.json",
+     "provider": {
+       "dial-sonnet55": {
+         "npm": "@ai-sdk/openai-compatible",
+         "name": "EPAM DIAL - Sonnet 5.5",
+         "options": {
+           "baseURL": "https://ai-proxy.lab.epam.com/openai/deployments/claude-sonnet-5-5@default",
+           "headers": { "Api-Key": "{env:DIAL_API_KEY}" }
+         },
+         "models": { "sonnet-55": { "name": "Sonnet 5.5 via DIAL" } }
+       }
+     }
+   }
+   ```
+
+   `~/.ringer/dial.env` holds the line `DIAL_API_KEY=<key>` (the
+   project-scoped key, mode 600; `mkdir -p ~/.ringer && chmod 600` it). In `~/.config/ringer/config.toml`, `bin`
    must be an absolute path, because Ringer expands neither `~` nor variables
    there:
 
@@ -453,8 +474,10 @@ cannot start. Each step ends in a check; do not move on until it passes.
    token_regex = '"tokens":\{"total":([0-9]+)'
    ```
 
-   Check: `source ~/.ringer/dial.env && $RINGER_CHECKOUT/ringer run
-   $RINGER_CHECKOUT/lane-test-dial.json --identity <who-you-are>` passes.
+   Check: `set -a; source ~/.ringer/dial.env; set +a` and then
+   `$RINGER_CHECKOUT/ringer run $RINGER_CHECKOUT/lane-test-dial.json
+   --identity <who-you-are>` passes (the `set -a` matters: a plain `source`
+   does not export the key to the workers).
 5. **Updates.** Run `$RINGER_CHECKOUT/update.sh` rather than
    `$RINGER_CHECKOUT/ringer self-update`: the checkout carries tracked local
    changes, and the built-in updater refuses to touch a dirty tree. On a
